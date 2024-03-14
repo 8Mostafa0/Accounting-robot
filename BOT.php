@@ -1,5 +1,5 @@
 <?PHP
-$bot_token = "";
+$bot_token = "6938169902:AAF47uv_0GZG_oJPy9fB3WDJLGpwnZb7ahI";
 $url = "https://api.telegram.org/bot".$bot_token;
 
 $json_updates = file_get_contents("php://input");
