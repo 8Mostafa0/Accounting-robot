@@ -19,7 +19,8 @@ $updates = json_decode($json_updates, true);
     $verify = "تایید";
     //! STORE DATA P_TYPE AND MODEL
     $sd_k1 = "مدل";
-    $sd_k2 = "نوع";
+    $sd_k2 = "مدل زیرمجموعه";
+    $sd_k3 = "نوع";
 
 
 
@@ -80,6 +81,7 @@ $updates = json_decode($json_updates, true);
     $m_or_p_set = [
         [$sd_k1],
         [$sd_k2],
+        [$sd_k3],
         [$back],
     ];
 
@@ -89,12 +91,28 @@ $updates = json_decode($json_updates, true);
         'keyboard' => $m_or_p_set
     ];
 
-    //!===== UNIQUE CULOMNS VALUE OF REAPIRE TABLE KEYBOARD
+    //!===== UNIQUE CULOMNS VALUE OF S_STORE TABLE KEYBOARD
     function unique_values_kb($culomn_name){
         $data = unique_values($culomn_name);
         
         $buttons = [];
 
+        if(count($data) > 0){
+            $buttons = $data;
+        }
+        array_push($buttons, [$GLOBALS['back']]);
+        $kb = [
+            'resize_keyboard' => true,
+            'one_time_keyboard' => false,
+            'keyboard' => $buttons
+        ];
+        return $kb;
+    }
+    //!===== UNIQUE CULOMNS VALUE OF S_STORE TABLE KEYBOARD WITH SEARCH
+    function unique_values_ws_kb($u_column,$s_column,$search){
+        $data = unique_values_by_search($u_column,$s_column,$search);
+        
+        $buttons = [];
         if(count($data) > 0){
             $buttons = $data;
         }
@@ -145,7 +163,8 @@ if($r_db){
                 case $m_k3: add_repaire();break;
                 case $m_k4:add_item_to_store();break;
                 case $sd_k1:store_data();break;
-                case $sd_k2:get_store_data_by_p_type();break;
+                case $sd_k2:get_store_data_by_sub_type();break;
+                case $sd_k3:get_store_data_by_p_type();break;
                 default:admin_panel("خانه");break;
             }
         }else if(strrpos($admin_status,'add_item') !== false){
@@ -166,8 +185,14 @@ if($r_db){
                 case "1": store_data_by_types($text);break;
                 default:admin_panel("مشکلی در پردازش بوجود امده است");
             }
+        }else if(strrpos( $admin_status,"sub_type") !== false){
+            $part = explode(' ',$admin_status)[1];
+            switch($part){
+                case '1':search_sub_types_of($text);break;
+                default:admin_panel('در پردازش مشکلی بوجود امد لطفا مجددا امتحان کنید');
+            }
         }
-}
+    }
 }
 
 
@@ -284,12 +309,13 @@ if($r_db){
         set_admin_text($p_type);
         send_message_wk("این ایتم زیر مجموعه کدام مدل است؟",unique_values_kb('sub_type'));
     }
+   
     //!========> GET ITEM SUBTYPE 
     function get_item_name($sub_type){
         $data = admin_text();
         set_admin_status('add_item 3');
         set_admin_text($data."/".$sub_type);
-        send_message_wk("لطفا مدل را انتخاب کنید یا از گزینه ها انتخاب کنید",unique_values_kb($sub_type));
+        send_message_wk("لطفا مدل را انتخاب کنید یا از گزینه ها انتخاب کنید",unique_values_ws_kb('model','sub_type',$sub_type));
     }
     //!========> GET ITEM PRICE
     function get_model_ask_price($model){
@@ -425,6 +451,41 @@ if($r_db){
         admin_panel($text);
         mysqli_close($con);
 
+    }
+    //!======= GET STORE DATA BY SUB_TYPE
+    function get_store_data_by_sub_type(){
+        set_admin_status('sub_type 1');
+        send_message_wk("لطفا مدل را انتخاب کنید",unique_values_kb('p_type'));
+    }
+    function search_sub_types_of($p_type){
+        $con = mysqli_connect($GLOBALS['servername'],$GLOBALS['user'],$GLOBALS['pass'],$GLOBALS['dbname']);
+        $sql = "SELECT DISTINCT sub_type FROM s_store WHERE p_type='$p_type'";
+        $res = mysqli_query($con,$sql);
+        $text = "
+        مدل های : ".$p_type."
+                ➖➖➖➖➖➖➖➖";
+        if(mysqli_num_rows($res) > 0){
+            $data = mysqli_fetch_all($res);
+            foreach($data as $t){
+                $type = $t[0];
+                $sql = "SELECT SUM(count) FROM s_store WHERE sub_type='$type'";
+                $res = mysqli_query($con,$sql);
+                $d = mysqli_fetch_all($res);
+                $count = (int)$d[0][0];
+                $text .= "
+
+                زیرمجموعه مدل : ".$type."
+
+                تعداد : ".$count."
+
+                ➖➖➖➖➖➖➖➖
+                ";
+
+            }
+        }else{
+            $text = "ایتمی در انبار موجود نیست";
+        }
+        admin_panel($text);
     }
     //!======== STORE DATA BY P_TYPE OR MODEL
     function store_data_by_model_p_type(){
@@ -603,7 +664,21 @@ if($r_db){
     //!=========== GET UNIQUE COLUMNS VALUE OF REPAIRE TABLE
     function unique_values($column_name){
         $con = mysqli_connect($GLOBALS['servername'],$GLOBALS['user'],$GLOBALS['pass'],$GLOBALS['dbname']);
-        $sql = "SELECT DISTINCT '$column_name' FROM s_store";
+        $sql = "SELECT  DISTINCT `$column_name` FROM s_store";
+        $res= mysqli_query( $con,$sql);
+        $data= [];
+        if(mysqli_num_rows($res) > 0){
+            $data = mysqli_fetch_all($res);
+        }else{
+            $data = [];
+        }
+        mysqli_close($con);
+        return $data;
+    }
+    //!========== UNIQUE VALUES BY TYPE
+    function unique_values_by_search($u_column,$s_column,$search){
+        $con = mysqli_connect($GLOBALS['servername'],$GLOBALS['user'],$GLOBALS['pass'],$GLOBALS['dbname']);
+        $sql = "SELECT  DISTINCT `$u_column` FROM s_store WHERE `$s_column`='$search'";
         $res= mysqli_query( $con,$sql);
         $data= [];
         if(mysqli_num_rows($res) > 0){
