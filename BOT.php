@@ -84,10 +84,37 @@ $updates = json_decode($json_updates, true);
     ];
 
     $m_or_p_kb = [
-        'one_time_keyboard' =>true,
+        'one_time_keyboard' =>false,
         'resize_keyboard' => true,
         'keyboard' => $m_or_p_set
     ];
+
+    //!===== UNIQUE CULOMNS VALUE OF REAPIRE TABLE KEYBOARD
+    function unique_values_kb($culomn_name){
+        $data = unique_values($culomn_name);
+        
+        $buttons = [];
+
+        if(count($data) > 0){
+            $buttons = $data;
+        }
+        array_push($buttons, [$GLOBALS['back']]);
+        $kb = [
+            'resize_keyboard' => true,
+            'one_time_keyboard' => false,
+            'keyboard' => $buttons
+        ];
+        return $kb;
+    }
+
+
+
+
+
+
+
+
+
 
 
 
@@ -114,8 +141,9 @@ if($r_db){
         // send_to_admin(json_encode($updates));
         if(($text=='/start') || ($admin_status == '0')|| ($text == $back)){
             switch($text){
-                case $m_k4:add_item_to_store();break;
                 case $m_k1:store_data_by_model_p_type();break;
+                case $m_k3: add_repaire();break;
+                case $m_k4:add_item_to_store();break;
                 case $sd_k1:store_data();break;
                 case $sd_k2:get_store_data_by_p_type();break;
                 default:admin_panel("خانه");break;
@@ -123,10 +151,12 @@ if($r_db){
         }else if(strrpos($admin_status,'add_item') !== false){
             $part = explode(' ',$admin_status)[1];
             switch($part){
-                case '1':get_item_name($text);break;
-                case '2':get_model($text);break;
-                case '3':verify_item($text);break;
-                case '4':add_item_to_db($text);break;
+                case '1':get_ptype_ask_subtype($text);break;
+                case '2':get_item_name($text);break;
+                case '3':get_model_ask_price($text);break;
+                case '4':get_price_ask_count($text);break;
+                case '5':get_count_and_verify($text);break;
+                case '6':add_item_to_db($text);break;
                 default:admin_panel("مشکلی در پردازش بوجود امد");
             }
             
@@ -139,6 +169,14 @@ if($r_db){
         }
 }
 }
+
+
+
+
+
+
+
+
 
 
 
@@ -237,22 +275,35 @@ if($r_db){
     }
     //!========> ADD ITEM TO STORE
     function add_item_to_store(){
-        send_message_wk("نوع ایتم را انتخاب کنید یا اسم ان را وارد کنید",p_type_kb());
         set_admin_status('add_item 1');
+        send_message_wk("نوع ایتم را انتخاب کنید یا اسم ان را وارد کنید",p_type_kb());
     }
-    //!========> GET ITEM NAME
-    function get_item_name($name){
-        send_message_wk("لطفا مدل را انتخاب کنید یا از گزینه ها انتخاب کنید",models($name));
-        set_admin_text($name);
+    //!======== GET P_TYPE AND ASK SUBTYP
+    function get_ptype_ask_subtype($p_type){
         set_admin_status('add_item 2');
+        set_admin_text($p_type);
+        send_message_wk("این ایتم زیر مجموعه کدام مدل است؟",unique_values_kb('sub_type'));
+    }
+    //!========> GET ITEM SUBTYPE 
+    function get_item_name($sub_type){
+        $data = admin_text();
+        set_admin_status('add_item 3');
+        set_admin_text($data."/".$sub_type);
+        send_message_wk("لطفا مدل را انتخاب کنید یا از گزینه ها انتخاب کنید",unique_values_kb($sub_type));
     }
     //!========> GET ITEM PRICE
-    function get_model($model){
-        $p_type = admin_text();
+    function get_model_ask_price($model){
+        $d = admin_text();
+        $data = explode('/',$d);
+        $p_type = $data[0];
+        $sub_type = $data[1];
+        set_admin_text($d.'/'.$model);
         $text = "
         لطفا قیمت 
         
         ایتم : ".$p_type."
+
+        زیرمجموعه مدل : ".$sub_type."
 
         مدل : ".$model."
 
@@ -260,41 +311,76 @@ if($r_db){
 
         .
         ";
-        set_admin_text($p_type." ".$model);
         
+        set_admin_status('add_item 4');
         send_message_wk($text,$GLOBALS['back_kb']);
-        set_admin_status('add_item 3');
     }
     //!======= VERIFY ITEM DATA
-    function verify_item($price){
-        $data = explode(' ',admin_text());
+    function get_price_ask_count($price){
+        $d = admin_text();
+        $data = explode('/',$d);
         $p_type = $data[0];
-        $model = $data[1];
+        $sub_model = $data[1];
+        $model = $data[2];
         $text= "
 
-        این مشخصات را تایید میکنید؟
+        تعداد را وارد کنید برای ایتم : 
 
         ایتم : ".$p_type."
 
+        زیر مجموعه مدل : ".$sub_model."
+        
         مدل : ".$model."
 
         قیمت : ".$price."
 
         .
         ";
-        set_admin_text($p_type." ".$model." ".$price);
-        set_admin_status('add_item 4');
-        send_message_v($text);
+        set_admin_text($d."/".$price);
+        set_admin_status('add_item 5');
+        send_message_wk($text,$GLOBALS['back_kb']);
         
     }
+    //!======== GET PRICE AND ASK FOR CUNT
+    function get_count_and_verify($count){
+        
+        $d = admin_text();
+        $data = explode('/',$d);
+        $p_type = $data[0];
+        $sub_model = $data[1];
+        $model = $data[2];
+        $price = $data[3];
+        set_admin_text($d."/".$count);
+        $text= "
+
+        این مشخصات را تایید میکنید؟
+
+        ایتم : ".$p_type."
+
+        زیر مجموعه مدل : ".$sub_model."
+        
+        مدل : ".$model."
+
+        قیمت : ".$price."
+
+        تعداد : ".$count."
+
+        .
+        ";
+        set_admin_status('add_item 6');
+        send_message_v($text);
+    }
+
     //!======== ADD ITEM TO DATABASE
     function add_item_to_db($verify){
         if($GLOBALS['verify']== $verify){
-            $data = explode(' ',admin_text());
+            $data = explode('/',admin_text());
             $p_type = $data[0];
-            $model = $data[1];
-            $price = $data[2];
-            $res = add_to_store_db($p_type,$model,$price);
+            $sub_type = $data[1];
+            $model = $data[2];
+            $price = $data[3];
+            $count = $data[4];
+            $res = add_to_store_db($p_type,$sub_type,$model,$price,$count);
             if($res){
                 admin_panel("ایتم با موفقیت ثبت شد");
 
@@ -354,20 +440,21 @@ if($r_db){
         $con = mysqli_connect($GLOBALS['servername'],$GLOBALS['user'],$GLOBALS['pass'],$GLOBALS['dbname']);
         $sql = "SELECT * FROM s_store WHERE p_type='$p_type'";
         $res= mysqli_query($con,$sql);
-        $text = "موجودی مدل های :  ".$p_type."\n";
+        $text = "موجودی مدل های :  ⚙️".$p_type."⚙️\n
+        🟰🟰🟰🟰🟰🟰🟰🟰🟰🟰🟰🟰🟰🟰🟰🟰";
         if(mysqli_num_rows($res) > 0){
             $data = mysqli_fetch_all($res);
             foreach($data as $model){
                 $text.= "
-                    مدل : ".$model[2]."
+                ◀️ مدل : ".$model[2]."
 
-                    تعداد : ".$model[3]."
+                ◀️ تعداد : ".$model[3]."
 
-                    تاریخ ثبت : ".$model[4]."
+                ◀️ تاریخ ثبت : ".$model[4]."
 
-                    قیمت : ".$model[5]."
+                ◀️ قیمت : ".$model[5]."
 
-                    🟰🟰🟰🟰🟰🟰🟰🟰🟰🟰🟰🟰🟰🟰🟰🟰
+        🟰🟰🟰🟰🟰🟰🟰🟰🟰🟰🟰🟰🟰🟰🟰🟰
                 ";
             }
         }else{
@@ -376,6 +463,32 @@ if($r_db){
         admin_panel($text);
         mysqli_close($con);
     }
+    //!======= ADD REAPIRE
+    function start_add_repaire(){
+        send_message_wk("لطقا نام مشتری را انتخاب کنید : ",unique_values_kb('username'));
+        set_admin_status('add_repaire 1');
+    }
+    //!======= GET USERNAME AND ASK FOR PHONE MODEL
+    function get_name_ask_phone($name){
+        set_admin_text($name);
+        set_admin_status('add_repaire 2');
+        send_message_wk("لطفا مدل گوشی را وارد کنید : ",unique_values_kb('phone'));
+    }
+    //!======= GET PHONE MODEL AND ASK FOR PRICE
+    function get_phone_ask_price($phone){
+        $text = admin_text();
+        set_admin_text($text."-".$phone);
+        set_admin_status('add_repaire 3');
+        send_message_wk("لطفا مبلغ را وارد کنید : ",$GLOBALS['back_kb']);
+    }
+
+    //!====== START ADD REAPIRE
+    function add_repaire(){
+
+    }
+
+
+
 
 
 
@@ -404,7 +517,7 @@ if($r_db){
         $res_admin = mysqli_query($con,$sql_admin);
         $check = $res_admin != false?true:false;
 
-        $sql_anbar = "CREATE TABLE IF NOT EXISTS s_store(id INT PRIMARY KEY  AUTO_INCREMENT,p_type TEXT COLLATE utf32_unicode_ci,model TEXT COLLATE utf32_unicode_ci,count TEXT COLLATE utf32_unicode_ci,date_in TEXT COLLATE utf32_unicode_ci,price TEXT COLLATE utf32_unicode_ci)";
+        $sql_anbar = "CREATE TABLE IF NOT EXISTS s_store(id INT PRIMARY KEY  AUTO_INCREMENT,p_type TEXT COLLATE utf32_unicode_ci,sub_type TEXT COLLATE utf32_unicode_ci,model TEXT COLLATE utf32_unicode_ci,count TEXT COLLATE utf32_unicode_ci,date_in TEXT COLLATE utf32_unicode_ci,price TEXT COLLATE utf32_unicode_ci)";
         $res_anbar = mysqli_query($con,$sql_anbar);
 
         $check = $check != false?false:($res_anbar != false?true:false);
@@ -419,10 +532,10 @@ if($r_db){
         return $check;
     }
     //!=========== ADD ITEM TO STORE TABLE
-    function add_to_store_db($p_type,$model,$price){
+    function add_to_store_db($p_type,$sub_type,$model,$price,$count){
         $con =  mysqli_connect($GLOBALS['servername'], $GLOBALS['user'], $GLOBALS['pass'],$GLOBALS['dbname']);
         $date = today();
-        $sql = "INSERT INTO s_store(p_type,model,price,date_in,count)VALUES('$p_type','$model','$price','$date','1')";
+        $sql = "INSERT INTO s_store(p_type,sub_type,model,price,date_in,count)VALUES('$p_type','$sub_type','$model','$price','$date','$count')";
         $res = mysqli_query($con,$sql);
         mysqli_close($con);
         return $res !== false;
@@ -485,6 +598,20 @@ if($r_db){
         }else{
             $data = [[$GLOBALS['back']]];
         }
+        return $data;
+    }
+    //!=========== GET UNIQUE COLUMNS VALUE OF REPAIRE TABLE
+    function unique_values($column_name){
+        $con = mysqli_connect($GLOBALS['servername'],$GLOBALS['user'],$GLOBALS['pass'],$GLOBALS['dbname']);
+        $sql = "SELECT DISTINCT '$column_name' FROM s_store";
+        $res= mysqli_query( $con,$sql);
+        $data= [];
+        if(mysqli_num_rows($res) > 0){
+            $data = mysqli_fetch_all($res);
+        }else{
+            $data = [];
+        }
+        mysqli_close($con);
         return $data;
     }
     //!=========== SEND MESSAGE WITH KEYBAORD
