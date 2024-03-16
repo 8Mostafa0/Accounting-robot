@@ -124,7 +124,19 @@ $updates = json_decode($json_updates, true);
         ];
         return $kb;
     }
-
+    //!===== TODAY KEYBOARD
+    function today_kb(){
+        $set = [
+            [today()],
+            [$GLOBALS['back']]
+        ];
+        $kb = [
+            'resize_keyboard' => true,
+            'one_time_keyboard' => false,
+            'keyboard' => $set
+        ];
+        return $kb;
+    }
 
 
 
@@ -160,7 +172,7 @@ if($r_db){
         if(($text=='/start') || ($admin_status == '0')|| ($text == $back)){
             switch($text){
                 case $m_k1:store_data_by_model_p_type();break;
-                case $m_k3: add_repaire();break;
+                case $m_k3: start_add_repaire();break;
                 case $m_k4:add_item_to_store();break;
                 case $sd_k1:store_data();break;
                 case $sd_k2:get_store_data_by_sub_type();break;
@@ -191,6 +203,20 @@ if($r_db){
                 case '1':search_sub_types_of($text);break;
                 default:admin_panel('در پردازش مشکلی بوجود امد لطفا مجددا امتحان کنید');
             }
+        }else if(strrpos( $admin_status,'add_repaire') !== false){
+            $part = explode(' ',$admin_status)[1];
+            switch($part){
+                case '1':get_name_ask_phone($text);break;
+                case '2':get_phone_ask_price($text);break;
+                case '3':get_price_ask_p_type($text);break;
+                case '4':get_p_type_ask_sub_type($text);break;
+                case '5':get_sub_type_ask_model($text);break;
+                case '6':get_model_ask_take_date($text);break;
+                case '7':get_model_ask_take_date($text);break;
+                case '8':get_take_date_ask_verify($text);break;
+                case '9':get_servdate_ask_end($text);break;
+                default:admin_panel('مشکلی در پردازش بوجود امده است');
+            }
         }
     }
 }
@@ -218,7 +244,7 @@ if($r_db){
 
 //!========= > FUNCTIONS
 
-//!=========> GET ADMIN STATUS
+    //!=========> GET ADMIN STATUS
     function admin_status(){
         $con = mysqli_connect($GLOBALS['servername'],$GLOBALS['user'],$GLOBALS['pass'],$GLOBALS['dbname']);
         $id = $GLOBALS['chat_id'];
@@ -237,6 +263,29 @@ if($r_db){
         $con = mysqli_connect($GLOBALS['servername'],$GLOBALS['user'],$GLOBALS['pass'],$GLOBALS['dbname']);
         $id = $GLOBALS['chat_id'];
         $sql = "UPDATE s_admin SET status='$text' WHERE chat_id='$id'";
+        $res = mysqli_query($con,$sql);
+        mysqli_close($con);
+        return $res !== false;
+    }
+    //!=========> GET ADMIN DATA
+    function admin_data(){
+        $con = mysqli_connect($GLOBALS['servername'],$GLOBALS['user'],$GLOBALS['pass'],$GLOBALS['dbname']);
+        $id = $GLOBALS['chat_id'];
+        $sql = "SELECT data FROM s_admin WHERE chat_id='$id'";
+        $res = mysqli_query($con,$sql);
+        if(mysqli_num_rows($res) > 0){
+            $data = mysqli_fetch_assoc($res);
+            mysqli_close($con);
+            return $data['status'];
+        }else{
+            return '0';
+        }
+    }
+    //!=========> SET ADMIN DATA
+    function set_admin_data($text){
+        $con = mysqli_connect($GLOBALS['servername'],$GLOBALS['user'],$GLOBALS['pass'],$GLOBALS['dbname']);
+        $id = $GLOBALS['chat_id'];
+        $sql = "UPDATE s_admin SET data='$text' WHERE chat_id='$id'";
         $res = mysqli_query($con,$sql);
         mysqli_close($con);
         return $res !== false;
@@ -261,6 +310,11 @@ if($r_db){
         mysqli_close($con);
         return $res !== false;
 
+    }
+    //!========> ADD TO ADMIN TEXT
+    function add_admin_text($data){
+        $text = admin_text();
+        set_admin_text($text."$".$data);
     }
     
     //!========> GET ADMIN ITEM_ID
@@ -409,6 +463,9 @@ if($r_db){
             $res = add_to_store_db($p_type,$sub_type,$model,$price,$count);
             if($res){
                 admin_panel("ایتم با موفقیت ثبت شد");
+                if(admin_data() != ""){
+                    add_half_repaire_to_db();
+                }
 
             }else{
                 admin_panel("هنگام ثبت ایتم مشکلی بوجود امد لطفا بعدا امتحان کنید");
@@ -526,27 +583,181 @@ if($r_db){
     }
     //!======= ADD REAPIRE
     function start_add_repaire(){
-        send_message_wk("لطقا نام مشتری را انتخاب کنید : ",unique_values_kb('username'));
         set_admin_status('add_repaire 1');
+        send_message_wk("لطفا نام مشتری را انتخاب کنید : ",unique_values_repaire('username'));
     }
     //!======= GET USERNAME AND ASK FOR PHONE MODEL
     function get_name_ask_phone($name){
         set_admin_text($name);
         set_admin_status('add_repaire 2');
-        send_message_wk("لطفا مدل گوشی را وارد کنید : ",unique_values_kb('phone'));
+        send_message_wk("لطفا مدل گوشی را وارد کنید : ",unique_values_repaire('phone'));
     }
     //!======= GET PHONE MODEL AND ASK FOR PRICE
     function get_phone_ask_price($phone){
-        $text = admin_text();
-        set_admin_text($text."-".$phone);
+        add_admin_text($phone);
         set_admin_status('add_repaire 3');
         send_message_wk("لطفا مبلغ را وارد کنید : ",$GLOBALS['back_kb']);
     }
+    //!====== GET PRICE ASK p_type
+    function get_price_ask_p_type($price){
+        set_admin_status('add_repaire 4');
+        add_admin_text($price);
+        send_message_wk('نوع قطعه را انتخاب کنید : ',unique_values('p_type'));
+    }
+    //!====== GET p_type ASK sub_type
+    function get_p_type_ask_sub_type($type){
+        set_admin_status('add_repaire 5');
+        add_admin_text($type);
+        send_message_wk("نوع زیر مجموعه قطعه را انتخاب کنید : ",unique_values('sub_type'));
+    }
+    //!====== GET sub_type AND ASK MODEL
+    function get_sub_type_ask_model($sub_type){
+        set_admin_status('add_repaire 6');
+        add_admin_text($sub_type);
+        send_message_wk("لطفا مدل فطعه را انتخاب کنید",unique_values("model"));
+    } 
+    //!===== GET price AND ASK FOR take_date
+    function get_model_ask_take_date($model){
+        set_admin_status('add_repaire 7');
+        add_admin_text($model);
+        send_message_wk("تاریخ ورود را وارد کنید",today_kb());
+    }
+    //!===== GET take_date AND ASK FOR serv_date
+    function get_take_date_ask_serv_date($date){
+        set_admin_status('add_repaire 8');
+        add_admin_text($date);
+        send_message_wk("تاریخ خروج را وارد کنید",today_kb());
+    }
+    function get_take_date_ask_verify( $date ){
+        set_admin_status('add_repaire 9');
+        add_admin_text($date);
+        send_message_wk("ایا گوشی را تحویل داده اید ؟",$GLOBALS['verify_kb']);
+    }
+    function get_servdate_ask_end($verify){
+        $data = admin_text();
+        $data = explode('$',$data);
+        $username = $data[0];
+        $phone = $data[1];
+        $price = $data[2];
+        $p_type = $data[3];
+        $sub_type = $data[4];
+        $model = $data[5];
+        $take_date = $data[6];
+        $serv_date = $data[7];
+        $end = "";
+        $profit = 0;
+        if($verify == $GLOBALS['verify']){
+            $end = 'yes';
+        }else{
+            $end = 'no';
+        }
+        $data.="$".$end;
+        $price_p = get_peace_price($p_type,$sub_type,$model);
+        if($price_p == 0){
+            set_admin_data($data);
+            set_admin_status("request 1");
+            set_admin_text($p_type."/".$sub_type."/".$model);
+            $text= "‼️
+            ایتم با اطلاعات : 
 
-    //!====== START ADD REAPIRE
-    function add_repaire(){
+            ایتم : ".$p_type."
+
+            زیرمجموعه : ".$sub_type." 
+
+            مدل : ".$model."
+
+            در انبار موجود نیست میخواهید ان را اضافه کنید؟
+            
+            ";
+            send_message_v($text);
+        }else{
+            $profit = $price - $price_p;
+            $res = add_repaire($username,$phone,$p_type,$sub_type,$model,$price,$take_date,$serv_date,$profit,$end);
+            if($res){
+                send_message("اطلاعات تعمیرات با موفقیت ذخیره شد.");
+
+            }else{
+                send_message("هنگام ذخیره سازی اطلاعات مشکلی بوجود امد لطفا بعدا امتحان کنید.");
+            }
+        }
 
     }
+    //!======== GET DATA FROM DATA COLUMN OF ADMIN AND ADD IT TO REPAIRE DATA BASE
+    function add_half_repaire_to_db(){
+        $data = admin_data();
+        $data = explode('$',$data);
+        $username = $data[0];
+        $phone = $data[1];
+        $price = $data[2];
+        $p_type = $data[3];
+        $sub_type = $data[4];
+        $model = $data[5];
+        $take_date = $data[6];
+        $serv_date = $data[7];
+        $end = $data[8];
+        $profit =$price -  get_peace_price($p_type,$sub_type,$model);
+        $res = add_repaire($username,$phone,$p_type,$sub_type,$model,$price,$take_date,$serv_date,$profit,$end);
+        if($res){
+            admin_panel("اطلاعات تعمیر با موفقیت ذخیره شد.");
+        }else{
+            admin_panel("مشکلی در ذخیره کردن اطلاعات بوجود امده است.");
+
+        }
+
+    }
+    //!====== GET PEACE PRICE
+    function get_peace_price($p_type,$sub_type,$model){
+        $con = mysqli_connect($GLOBALS['servername'],$GLOBALS['user'],$GLOBALS['pass'],$GLOBALS['dbname']);
+        $sql = "SELECT price FROM s_store WHERE p_type='$p_type' AND sub_type='$sub_type' AND model='$model' LIMIT 1";
+        $res = mysqli_query($con,$sql);
+        if(mysqli_num_rows($res) > 0){
+            $data = mysqli_fetch_array($res);
+            return $data['price'];
+        }else{
+            return 0;
+        }
+    }
+
+    //!================== REQUEST PART FROM HALF A PROCESS
+
+    //!=========== FROM ADD REPAIRE PROCESS ADD ITEMS TO STORE
+    function request_1_ask_add_item($verify){
+        if($verify == $GLOBALS['verify']){
+            $d = admin_text();
+            $data = explode('/',$d);
+            $p_type = $data[0];
+            $sub_type = $data[1];
+            $model = $data[2];
+            $text = "
+            لطفا قیمت 
+            
+            ایتم : ".$p_type."
+    
+            زیرمجموعه مدل : ".$sub_type."
+    
+            مدل : ".$model."
+    
+            را وارد کنید.
+    
+            .
+            ";
+            
+            set_admin_status('add_item 4');
+            send_message_wk($text,$GLOBALS['back_kb']);
+        }else{
+            send_message("اطلاعات در هاست ذخیره میشود و سود شما  به صورت مبلغ اصلی در نظر گرفته میشود.");
+            set_admin_status('');
+        }
+    }
+
+
+
+
+
+
+
+
+
 
 
 
@@ -574,7 +785,7 @@ if($r_db){
     function check(){
         $con =  mysqli_connect($GLOBALS['servername'], $GLOBALS['user'], $GLOBALS['pass'],$GLOBALS['dbname']);
         $check = true;
-        $sql_admin = "CREATE TABLE IF NOT EXISTS s_admin(id INT PRIMARY KEY  AUTO_INCREMENT,chat_id TEXT COLLATE utf32_unicode_ci,username TEXT COLLATE utf32_unicode_ci,status TEXT COLLATE utf32_unicode_ci,item_id TEXT COLLATE utf32_unicode_ci,text TEXT COLLATE utf32_unicode_ci)";
+        $sql_admin = "CREATE TABLE IF NOT EXISTS s_admin(id INT PRIMARY KEY  AUTO_INCREMENT,chat_id TEXT COLLATE utf32_unicode_ci,username TEXT COLLATE utf32_unicode_ci,status TEXT COLLATE utf32_unicode_ci,item_id TEXT COLLATE utf32_unicode_ci,text TEXT COLLATE utf32_unicode_ci,data TEXT COLLATE utf32_unicode_ci)";
         $res_admin = mysqli_query($con,$sql_admin);
         $check = $res_admin != false?true:false;
 
@@ -583,7 +794,7 @@ if($r_db){
 
         $check = $check != false?false:($res_anbar != false?true:false);
 
-        $sql_repaires = "CREATE TABLE IF NOT EXISTS s_repairs(id INT PRIMARY KEY  AUTO_INCREMENT,username TEXT COLLATE utf32_unicode_ci,phone TEXT COLLATE utf32_unicode_ci,Price TEXT COLLATE utf32_unicode_ci,take_date TEXT COLLATE utf32_unicode_ci,serv_date TEXT COLLATE utf32_unicode_ci,profit TEXT COLLATE utf32_unicode_ci,end TEXT COLLATE utf32_unicode_ci)";
+        $sql_repaires = "CREATE TABLE IF NOT EXISTS s_repairs(id INT PRIMARY KEY  AUTO_INCREMENT,username TEXT COLLATE utf32_unicode_ci,phone TEXT COLLATE utf32_unicode_ci,p_type TEXT COLLATE utf32_unicode_ci,sub_type TEXT COLLATE utf32_unicode_ci,model TEXT COLLATE utf32_unicode_ci,price TEXT COLLATE utf32_unicode_ci,take_date TEXT COLLATE utf32_unicode_ci,serv_date TEXT COLLATE utf32_unicode_ci,profit TEXT COLLATE utf32_unicode_ci,end TEXT COLLATE utf32_unicode_ci)";
         $res_repaires = mysqli_query($con,$sql_repaires);
 
         $check = $check != false?false:($res_repaires != false?true:false);
@@ -591,6 +802,18 @@ if($r_db){
         mysqli_close($con);
         
         return $check;
+    }
+    //!=========== ADD REPAIRE TP REPARE TABLE
+    function add_repaire($user,$phone,$p_type,$sub_type,$model,$price,$tacke_date,$serv_date,$profit,$end){
+        $con = mysqli_connect($GLOBALS['servername'],$GLOBALS['user'],$GLOBALS['pass'],$GLOBALS['dbname']);
+        $sql = "INSERT INTO s_repaire(user,phone,p_type,sub_type,model,price,tacke_date,serv_date,profit,end) VALUES ('$user','$phone','$p_type','$sub_type','$model','$price','$tacke_date','$serv_date','$profit','$end')";
+        $res = mysqli_query($con,$sql);
+        if($res !== false){
+            return true;
+        }else{
+            return false;
+        }
+
     }
     //!=========== ADD ITEM TO STORE TABLE
     function add_to_store_db($p_type,$sub_type,$model,$price,$count){
@@ -661,7 +884,28 @@ if($r_db){
         }
         return $data;
     }
-    //!=========== GET UNIQUE COLUMNS VALUE OF REPAIRE TABLE
+    //!=========== GET UNIQUE VALUES OF REPAIPARE TABLE
+    function unique_values_repaire($column){
+        $con = mysqli_connect($GLOBALS['servername'],$GLOBALS['user'],$GLOBALS['pass'],$GLOBALS['dbname']);
+        $sql = "SELECT DISTINCT `$column` FROM s_repairs";
+        $res= mysqli_query( $con,$sql);
+        $data= [];
+        if(mysqli_num_rows($res) > 0){
+            $data = mysqli_fetch_all($res);
+            array_push($data,[$GLOBALS['back']]);
+        }else{
+            $data = [[$GLOBALS['back']]];
+        }
+        mysqli_close($con);
+        $kb = [
+            'one_time_keyboard' =>false,
+            'resiez_keyboard' =>true,
+            'keyboard' =>  $data
+        ];
+        return $kb;
+        
+    }
+    //!=========== GET UNIQUE COLUMNS VALUE OF STORE TABLE
     function unique_values($column_name){
         $con = mysqli_connect($GLOBALS['servername'],$GLOBALS['user'],$GLOBALS['pass'],$GLOBALS['dbname']);
         $sql = "SELECT  DISTINCT `$column_name` FROM s_store";
