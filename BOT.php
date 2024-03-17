@@ -126,8 +126,11 @@ $updates = json_decode($json_updates, true);
     }
     //!===== TODAY KEYBOARD
     function today_kb(){
+        $days = today(); 
         $set = [
-            [today()],
+            $days[0],
+            $days[1],
+            $days[2],
             [$GLOBALS['back']]
         ];
         $kb = [
@@ -833,7 +836,33 @@ if($r_db){
         $year = $persianCalendar->get(IntlCalendar::FIELD_YEAR);
         $month = $persianCalendar->get(IntlCalendar::FIELD_MONTH) + 1; // Add 1 to the month since it is zero-based
         $day = $persianCalendar->get(IntlCalendar::FIELD_DAY_OF_MONTH);
-        return $year."-".$month."-".$day;
+        $days = [];
+        if($day-1 > 0){
+            array_push($days,[$year."-".$month."-".($day-1)]);
+            array_push($days,[$year."-".$month."-".$day]);
+            array_push($days,[$year."-".$month."-".($day+1)]);
+        }else{
+            $month = $month -1;
+            $day = 29;
+            array_push($days,[$year."-".$month."-".($day-1)]);
+            array_push($days,[$year."-".$month."-".$day]);
+            array_push($days,[$year."-".$month."-".($day+1)]);
+
+        }
+        if($day+1 <31){
+            array_push($days,[$year."-".$month."-".($day-1)]);
+            array_push($days,[$year."-".$month."-".$day]);
+            array_push($days,[$year."-".$month."-".($day+1)]);
+
+        }else{
+            $month = $month + 1;
+            $day = 2;
+            array_push($days,[$year."-".$month."-".($day-1)]);
+            array_push($days,[$year."-".$month."-".$day]);
+            array_push($days,[$year."-".$month."-".($day+1)]);
+
+        }
+        return $days;
 
     }
     //!=========== SEND MESSAGE WITH VERIFY KEYBOARD
