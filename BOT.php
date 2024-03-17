@@ -898,6 +898,7 @@ if($r_db){
     function add_to_store_db($p_type,$sub_type,$model,$price,$count){
         $con =  mysqli_connect($GLOBALS['servername'], $GLOBALS['user'], $GLOBALS['pass'],$GLOBALS['dbname']);
         $date = today();
+        $date = $date[0]."-".$date[1]."-".$date[2];
         $sql = "INSERT INTO s_store(p_type,sub_type,model,price,date_in,count)VALUES('$p_type','$sub_type','$model','$price','$date','$count')";
         $res = mysqli_query($con,$sql);
         mysqli_close($con);
