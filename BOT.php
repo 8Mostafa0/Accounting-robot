@@ -212,7 +212,7 @@ if($r_db){
                 case '4':get_p_type_ask_sub_type($text);break;
                 case '5':get_sub_type_ask_model($text);break;
                 case '6':get_model_ask_take_date($text);break;
-                case '7':get_model_ask_take_date($text);break;
+                case '7':get_take_date_ask_serv_date($text);break;
                 case '8':get_take_date_ask_verify($text);break;
                 case '9':get_servdate_ask_end($text);break;
                 default:admin_panel('مشکلی در پردازش بوجود امده است');
@@ -602,19 +602,20 @@ if($r_db){
     function get_price_ask_p_type($price){
         set_admin_status('add_repaire 4');
         add_admin_text($price);
-        send_message_wk('نوع قطعه را انتخاب کنید : ',unique_values('p_type'));
+        send_message_wk('نوع قطعه را انتخاب کنید : ',unique_values_kb('p_type'));
     }
     //!====== GET p_type ASK sub_type
     function get_p_type_ask_sub_type($type){
         set_admin_status('add_repaire 5');
         add_admin_text($type);
-        send_message_wk("نوع زیر مجموعه قطعه را انتخاب کنید : ",unique_values('sub_type'));
+        send_message_wk("نوع زیر مجموعه قطعه را انتخاب کنید : ",unique_values_kb('sub_type'));
     }
     //!====== GET sub_type AND ASK MODEL
     function get_sub_type_ask_model($sub_type){
         set_admin_status('add_repaire 6');
+        $d = admin_text();
         add_admin_text($sub_type);
-        send_message_wk("لطفا مدل فطعه را انتخاب کنید",unique_values("model"));
+        send_message_wk("لطفا مدل فطعه را انتخاب کنید",unique_values_ws_kb('model','sub_type',$sub_type));
     } 
     //!===== GET price AND ASK FOR take_date
     function get_model_ask_take_date($model){
@@ -674,10 +675,10 @@ if($r_db){
             $profit = $price - $price_p;
             $res = add_repaire($username,$phone,$p_type,$sub_type,$model,$price,$take_date,$serv_date,$profit,$end);
             if($res){
-                send_message("اطلاعات تعمیرات با موفقیت ذخیره شد.");
+                admin_panel("اطلاعات تعمیرات با موفقیت ذخیره شد.");
 
             }else{
-                send_message("هنگام ذخیره سازی اطلاعات مشکلی بوجود امد لطفا بعدا امتحان کنید.");
+                admin_panel("هنگام ذخیره سازی اطلاعات مشکلی بوجود امد لطفا بعدا امتحان کنید.");
             }
         }
 
@@ -806,7 +807,7 @@ if($r_db){
     //!=========== ADD REPAIRE TP REPARE TABLE
     function add_repaire($user,$phone,$p_type,$sub_type,$model,$price,$tacke_date,$serv_date,$profit,$end){
         $con = mysqli_connect($GLOBALS['servername'],$GLOBALS['user'],$GLOBALS['pass'],$GLOBALS['dbname']);
-        $sql = "INSERT INTO s_repaire(user,phone,p_type,sub_type,model,price,tacke_date,serv_date,profit,end) VALUES ('$user','$phone','$p_type','$sub_type','$model','$price','$tacke_date','$serv_date','$profit','$end')";
+        $sql = "INSERT INTO s_repairs(username,phone,p_type,sub_type,model,price,take_date,serv_date,profit,end) VALUES ('$user','$phone','$p_type','$sub_type','$model','$price','$tacke_date','$serv_date','$profit','$end')";
         $res = mysqli_query($con,$sql);
         if($res !== false){
             return true;
@@ -899,7 +900,7 @@ if($r_db){
         mysqli_close($con);
         $kb = [
             'one_time_keyboard' =>false,
-            'resiez_keyboard' =>true,
+            'resize_keyboard' =>true,
             'keyboard' =>  $data
         ];
         return $kb;
