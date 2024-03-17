@@ -140,7 +140,26 @@ $updates = json_decode($json_updates, true);
         ];
         return $kb;
     }
-
+    //!===== MONTHS KEYBOARD
+    function months_kb(){
+        $persianCalendar = IntlCalendar::createInstance('Asia/Tehran', 'fa_IR@calendar=persian');
+        $persianCalendar->setTime(time() * 1000); // Set the calendar instance to the current timestamp
+    
+        $year = $persianCalendar->get(IntlCalendar::FIELD_YEAR);
+        $month = $persianCalendar->get(IntlCalendar::FIELD_MONTH) + 1; // Add 1 to the month since it is zero-based
+        $set = [
+            [$year."-".$month],
+            [$year."-".($month - 1)],
+            [$year."-".($month - 2)],
+            [$GLOBALS['back']]
+        ];
+        $kb = [
+            'resize_keyboard' =>true,
+            'one_time_keyboard' => false,
+            'keyboard' => $set
+        ];
+        return $kb;
+    }
 
 
 
@@ -175,7 +194,8 @@ if($r_db){
         if(($text=='/start') || ($admin_status == '0')|| ($text == $back)){
             switch($text){
                 case $m_k1:store_data_by_model_p_type();break;
-                case $m_k3: start_add_repaire();break;
+                case $m_k2:ask_date_factor();break;
+                case $m_k3:start_add_repaire();break;
                 case $m_k4:add_item_to_store();break;
                 case $sd_k1:store_data();break;
                 case $sd_k2:get_store_data_by_sub_type();break;
@@ -219,6 +239,12 @@ if($r_db){
                 case '8':get_take_date_ask_verify($text);break;
                 case '9':get_servdate_ask_end($text);break;
                 default:admin_panel('مشکلی در پردازش بوجود امده است');
+            }
+        }else if(strrpos($admin_status,'factor')!== false){
+            $part = explode(' ',$admin_status)[1];
+            switch($part){
+                case '1':get_date($text);break;
+                default:admin_panel("مشکلی در پردازش بوجود امده است");
             }
         }
     }
@@ -753,9 +779,58 @@ if($r_db){
             set_admin_status('');
         }
     }
+    //!================= MONTHLY FACTORS
+    function ask_date_factor(){
+        set_admin_status('factor 1');
+        send_message_wk('لطفا تاریخ را انتخاب کنید یا وارد کنید : ',months_kb());
+    }
+    function get_date($date){
+        try{
+            $d = explode('-',$date);
+            $con = mysqli_connect($GLOBALS['servername'],$GLOBALS['user'],$GLOBALS['pass'],$GLOBALS['dbname']);
+            $sql = "SELECT * FROM s_repairs WHERE take_date LIKE '%$date%' AND end='yes'";
+            $res = mysqli_query($con,$sql);
+            $profit = 0;
+            $count = 0;
+            $text = "
+            فاکتور تاریخ : ".$date."
+                    ♾♾♾♾♾♾♾♾";
+            if(mysqli_num_rows($res) > 0){
+                $data = mysqli_fetch_all($res);
+                foreach($data as $d){
+                    $count += 1;
+                    $profit += $d[9];
+                    $text .= "
+                    مشتری : ".$d[1]."
+                    گوشی : ".$d[2]."
+                    قطعه : ".$d[3]."
+                    نوع قطعه : ".$d[4]."
+                    مدل قطعه : ".$d[5]."
+                    هزینه تعمیر : ".$d[6]."
+                    تاریخ دریافت : ".$d[7]."
+                    تاریخ تحویل : ".$d[8]."
+                    سود : ".$d[9]."
+                    تحویل شد : ".($d[10]== 'yes'?'بله':'خیر')."
+                    ♾♾♾♾♾♾♾♾
+                    ";
+                }
+            }else{
+                $text = "اطلاعاتی از این تاریخ وجود ندارد";
+            }
+            mysqli_close($con);
+            admin_panel($text);
+            $t = "
+             ➖➖➖➖➖➖➖
+            سود کل : ".$profit."
+            تعداد تعمیرات : ".$count."
+            ➖➖➖➖➖➖➖
+            ";
+            send_message($t);
 
-
-
+        }catch(Exception $e){
+            admin_panel("فرمت وارد شده نا معتبر می باشد لطفا تاریخ را به صورت  \n 1402/2 \n وارد کنید");
+        }
+    }
 
 
 
