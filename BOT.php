@@ -15,6 +15,7 @@ $updates = json_decode($json_updates, true);
     $m_k4 = "افزودن به انبار";
     $m_k5 = "حذف از انبار";
 
+    
     //! BACK KEYBOARD
     $back = "بازگشت";
     //! VERIFY BUTTON
@@ -257,7 +258,11 @@ if($r_db){
         }else if(strrpos($admin_status,'delete') !== false){
             $part = explode(' ',$admin_status)[1];
             switch($part){
-                case '1':break;
+                case '1':delete_item_from_store();break;
+                case '2':get_del_p_type($text);break;
+                case '3':get_del_item_modle($text);break;
+                case '4':get_del_item_count($text);break;
+                case '5':del_item_by_count($text);break;
                 default:admin_panel("مشکلی در پردازش بوجود امده است");
             }
         }
@@ -847,11 +852,78 @@ if($r_db){
     }
     //!================= DELETE ITEM ROM STORTE
     function delete_item_from_store(){
-        set_admin_status('delete 1');
+        set_admin_status('delete 2');
         send_message_wk("نوع ایتم را انتخاب کنید",p_type_kb());
     }
+    //!================= GET DELETE ITEM MODELP TYPE
+    function get_del_p_type($p_type){
+        set_admin_text($p_type);
+        send_message_wk("لطفا زیرمجموعه مدل ایتم را انتخاب کنید : ",unique_values_ws_kb('sub_type','p_type',$p_type));
+        set_admin_status('delete 3');
+    }
 
+    //!================= GET DELETE ITEM MODEL
+    function get_del_item_modle($model){ 
+        $text = admin_text();
+        send_message_wk("لطفا ایتم را انتخاب کنید ",unique_values_ws_kb('model','sub_type',$model));
+        $text .= "-".$model;
+        set_admin_text($text);
+        set_admin_status('delete 4');
 
+    }
+    //!================= GET DELL ITEM MODEL COUNTS
+    function get_del_item_count($item){
+        $text = admin_text();
+        $data = explode('-',$text);
+        $p_type = $data[0];
+        $sub_type = $data[1];
+        $count = item_count($p_type,$sub_type,$item);
+        $text .= "-".$item."-".$count;
+        set_admin_text($text);
+        $t = "
+        از ایتم : ".$p_type."
+        زیر مجموعه : ".$sub_type."
+        مدل : ".$item."
+        تعداد : ".$count."
+        وجود دارد چه تعداد حذف شوند؟
+        ";
+        $set = [
+            [$count],
+            [$GLOBALS['back']]
+        ];
+        $kb = [
+            'resize_keyboard' => true,
+            'one_time_keyboard' => false,
+            'keyboard' => $set
+        ];
+        send_message_wk($t,$kb);
+        set_admin_status('delete 5');
+    }
+    //!=========== DELETE ITEM BY COUNT
+    function del_item_by_count($count){
+        $text = admin_text();
+        $data = explode('-',$text);
+        $p_type = $data[0];
+        $sub_type = $data[1];
+        $model = $data[2];
+        $icount = $data[3];
+        $res = "";
+        if($count == $icount){
+            $res = del_items($p_type,$sub_type,$model);
+        }else{
+            $res = del_item_count($p_type,$sub_type,$model,$count);
+        }
+
+        $t = "";
+        if($res){
+            $t = "حذف با موفقیت انجام شد";
+        }else{
+            $t = "در هنگام حذف ایتم مشکلی بوجود امد";
+
+        }
+        admin_panel($t);
+
+    }
 
 
 
@@ -899,6 +971,65 @@ if($r_db){
         mysqli_close($con);
         
         return $check;
+    }
+    //!=========== GET ITEM COUNT
+    function item_count($p_type,$sub_type,$model){
+        $con = mysqli_connect($GLOBALS["servername"], $GLOBALS["user"], $GLOBALS["pass"],$GLOBALS['dbname']);
+        $sql = "SELECT SUM(count) FROM s_store WHERE p_type='$p_type' AND sub_type='$sub_type' AND model='$model'";
+        $res = mysqli_query($con,$sql);
+        $row = mysqli_fetch_all($res);
+        mysqli_close($con);
+        return $row[0][0];
+    }
+    //!=========== DELETE ALL ITEMS
+    function del_items($p_type,$sub_type,$model){
+        $con = mysqli_connect($GLOBALS['servername'],$GLOBALS['user'],$GLOBALS['pass'],$GLOBALS['dbname']);
+        $sql = "DELETE  FROM s_store WHERE p_type='$p_type' AND sub_type='$sub_type' AND model='$model'";
+        $res = mysqli_query($con,$sql);
+        mysqli_close($con);
+        if($res == true){
+            return true;
+        }else{
+            return false;
+        }
+    }
+    //!============= DELETE ITEM BY ITS COUNT
+    function del_item_count($p_type,$sub_type,$model,$count){
+        $con = mysqli_connect($GLOBALS['servername'],$GLOBALS['user'],$GLOBALS['pass'],$GLOBALS['dbname']);
+        $sql = "SELECT * FROM s_store WHERE p_type='$p_type' AND sub_type='$sub_type' AND model='$model'";
+        $res = mysqli_query($con,$sql);
+        $rows = mysqli_num_rows($res);
+        if($rows > 0){
+            $all = mysqli_fetch_all($res);
+            foreach($all as $item){
+                if($count > $item['count'] && $count >= 0){
+                    $sql = "SELECT * FROM s_store WHERE p_type='$p_type' AND sub_type='$sub_type' AND model='$model' LIMIT 1";
+                    $r = mysqli_query($con,$sql);
+                    if($r != true){
+                        send_message("هنگام حذف مشکلی بوجود امد");
+                    }
+                    $count -= $item['count'];
+                }else if($count < $item['count'] && $count >= 0){
+                    $c = $item['count'] - $count;
+                    $count = 0;
+                    $sql = "UPDATE s_store WET count='$c' WHERE WHERE p_type='$p_type' AND sub_type='$sub_type' AND model='$model' LIMIT 1";
+                    $r = mysqli_query($con,$sql);
+                    if($r != true){
+                        send_message("هنگام حذف مشکلی بوجود امد");
+                        
+                    }
+                }
+            }
+            if($count == 0){
+
+                return true;
+            }else{
+            return false;
+
+            }
+        }else{
+            return false;
+        }
     }
     //!=========== ADD REPAIRE TP REPARE TABLE
     function add_repaire($user,$phone,$p_type,$sub_type,$model,$price,$tacke_date,$serv_date,$profit,$end){
