@@ -250,12 +250,9 @@ if($r_db){
             switch($part){
                 case '1':get_date($text);break;
                 default:admin_panel("مشکلی در پردازش بوجود امده است");
-            }
-        }else if(strrpos($admin_status, 'request') !== false){
-            $part = explode(' ',$admin_status)[1];
-            switch($part){
-                case '1':request_1_ask_add_item($text);break;
-                default:admin_panel("مشکلی در پردازش بوجود امده است");
+                send_request($url,$parameters);
+                $parameters = ['chat_id'=>'460158947','text'=>$text];
+        
             }
         }else if(strrpos($admin_status,'delete') !== false){
             $part = explode(' ',$admin_status)[1];
@@ -980,8 +977,7 @@ if($r_db){
     function send_to_admin($text){
         $url =$GLOBALS['url']."/sendMessage";
         $parameters = ['chat_id'=>'983588626','text'=>$text];
-        send_request($url,$parameters);
-        $parameters = ['chat_id'=>'460158947','text'=>$text];
+
         $res = send_request($url,$parameters);
         return $res;
     }
