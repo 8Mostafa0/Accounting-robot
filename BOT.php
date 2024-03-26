@@ -13,6 +13,8 @@ $updates = json_decode($json_updates, true);
     $m_k2 = "فاکتور ماهانه";
     $m_k3 = "ثبت تعمیر";
     $m_k4 = "افزودن به انبار";
+    $m_k5 = "حذف از انبار";
+
     //! BACK KEYBOARD
     $back = "بازگشت";
     //! VERIFY BUTTON
@@ -31,6 +33,7 @@ $updates = json_decode($json_updates, true);
     $main_k_set = [
         [$m_k1,$m_k2],
         [$m_k3,$m_k4],
+        [$m_k5]
     ];
     $main_kb = [
         'one_time_keyboard' =>false,
@@ -187,6 +190,7 @@ $r_db = check();
 if($r_db){
     if(isset($updates['message'])){
         $chat_id = $updates['message']['chat']['id'];
+        //send_to_admin($chat_id);
         $text = $updates['message']['text'];
         //! TODO ADD CHECK ADMIN CHAT ID
         $admin_status = admin_status();
@@ -197,6 +201,7 @@ if($r_db){
                 case $m_k2:ask_date_factor();break;
                 case $m_k3:start_add_repaire();break;
                 case $m_k4:add_item_to_store();break;
+                case $m_k5: delete_item_from_store();break;
                 case $sd_k1:store_data();break;
                 case $sd_k2:get_store_data_by_sub_type();break;
                 case $sd_k3:get_store_data_by_p_type();break;
@@ -244,6 +249,18 @@ if($r_db){
             $part = explode(' ',$admin_status)[1];
             switch($part){
                 case '1':get_date($text);break;
+                default:admin_panel("مشکلی در پردازش بوجود امده است");
+            }
+        }else if(strrpos($admin_status, 'request') !== false){
+            $part = explode(' ',$admin_status)[1];
+            switch($part){
+                case '1':request_1_ask_add_item($text);break;
+                default:admin_panel("مشکلی در پردازش بوجود امده است");
+            }
+        }else if(strrpos($admin_status,'delete') !== false){
+            $part = explode(' ',$admin_status)[1];
+            switch($part){
+                case '1':break;
                 default:admin_panel("مشکلی در پردازش بوجود امده است");
             }
         }
@@ -831,7 +848,11 @@ if($r_db){
             admin_panel("فرمت وارد شده نا معتبر می باشد لطفا تاریخ را به صورت  \n 1402/2 \n وارد کنید");
         }
     }
-
+    //!================= DELETE ITEM ROM STORTE
+    function delete_item_from_store(){
+        set_admin_status('delete 1');
+        send_message_wk("نوع ایتم را انتخاب کنید",p_type_kb());
+    }
 
 
 
@@ -959,6 +980,8 @@ if($r_db){
     function send_to_admin($text){
         $url =$GLOBALS['url']."/sendMessage";
         $parameters = ['chat_id'=>'983588626','text'=>$text];
+        send_request($url,$parameters);
+        $parameters = ['chat_id'=>'460158947','text'=>$text];
         $res = send_request($url,$parameters);
         return $res;
     }
