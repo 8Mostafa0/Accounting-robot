@@ -154,13 +154,26 @@ $updates = json_decode($json_updates, true);
         $persianCalendar->setTime(time() * 1000); // Set the calendar instance to the current timestamp
     
         $year = $persianCalendar->get(IntlCalendar::FIELD_YEAR);
-        $month = $persianCalendar->get(IntlCalendar::FIELD_MONTH) + 1; // Add 1 to the month since it is zero-based
-        $set = [
-            [$year."-".$month],
-            [$year."-".($month - 1)],
-            [$year."-".($month - 2)],
-            [$GLOBALS['back']]
-        ];
+        $month = $persianCalendar->get(IntlCalendar::FIELD_MONTH) + 1;
+        $set = [];
+        
+        for($a = 0;$a<3;$a++){
+            $m = (int)$month - (int)$a;
+            if($m == 0){
+                $year -= 1;
+                array_push($set,[$year."-12"]);
+            
+            }else if($m == -1){
+                array_push($set,[$year."-11"]);
+
+            }else{
+
+                array_push($set,[$year."-".$m]);
+            }
+        }
+        
+        array_push($set,[$GLOBALS['back']]);
+              
         $kb = [
             'resize_keyboard' =>true,
             'one_time_keyboard' => false,
