@@ -324,7 +324,7 @@ if($r_db){
         if(mysqli_num_rows($res) > 0){
             $data = mysqli_fetch_assoc($res);
             mysqli_close($con);
-            return $data['status'];
+            return $data['data'];
         }else{
             return '0';
         }
@@ -1002,33 +1002,38 @@ if($r_db){
         if($rows > 0){
             $all = mysqli_fetch_all($res);
             foreach($all as $item){
-                if($count > $item['count'] && $count >= 0){
-                    $sql = "SELECT * FROM s_store WHERE p_type='$p_type' AND sub_type='$sub_type' AND model='$model' LIMIT 1";
+                $icount = $item[4];
+                if($count > $icount && $count >= 0){
+                    $sql = "DELETE FROM s_store WHERE p_type='$p_type' AND sub_type='$sub_type' AND model='$model' LIMIT 1";
                     $r = mysqli_query($con,$sql);
                     if($r != true){
                         send_message("هنگام حذف مشکلی بوجود امد");
                     }
-                    $count -= $item['count'];
-                }else if($count < $item['count'] && $count >= 0){
-                    $c = $item['count'] - $count;
+                    $count -= $icount;
+                }else if($count < $icount && $count >= 0){
+                    $c = (int)$icount - (int)$count;
+                    
                     $count = 0;
-                    $sql = "UPDATE s_store WET count='$c' WHERE WHERE p_type='$p_type' AND sub_type='$sub_type' AND model='$model' LIMIT 1";
+                    $sql = "UPDATE s_store SET count='$c' WHERE p_type='$p_type' AND sub_type='$sub_type' AND model='$model'  LIMIT 1";
                     $r = mysqli_query($con,$sql);
                     if($r != true){
                         send_message("هنگام حذف مشکلی بوجود امد");
                         
                     }
+                    break;
                 }
             }
-            if($count == 0){
-
-                return true;
-            }else{
+            mysqli_close($con);
+        }else{
+            mysqli_close($con);
             return false;
-
-            }
+        }
+        if($count == 0){
+            
+            return true;
         }else{
             return false;
+            
         }
     }
     //!=========== ADD REPAIRE TP REPARE TABLE
@@ -1046,8 +1051,7 @@ if($r_db){
     //!=========== ADD ITEM TO STORE TABLE
     function add_to_store_db($p_type,$sub_type,$model,$price,$count){
         $con =  mysqli_connect($GLOBALS['servername'], $GLOBALS['user'], $GLOBALS['pass'],$GLOBALS['dbname']);
-        $date = today();
-        $date = $date[0]."-".$date[1]."-".$date[2];
+        $date = today()[1];
         $sql = "INSERT INTO s_store(p_type,sub_type,model,price,date_in,count)VALUES('$p_type','$sub_type','$model','$price','$date','$count')";
         $res = mysqli_query($con,$sql);
         mysqli_close($con);
@@ -1066,15 +1070,14 @@ if($r_db){
             array_push($days,[$year."-".$month."-".($day-1)]);
             array_push($days,[$year."-".$month."-".$day]);
             array_push($days,[$year."-".$month."-".($day+1)]);
-        }else{
+        }else if($day -1 <= 0){
             $month = $month -1;
             $day = 29;
             array_push($days,[$year."-".$month."-".($day-1)]);
             array_push($days,[$year."-".$month."-".$day]);
             array_push($days,[$year."-".$month."-".($day+1)]);
 
-        }
-        if($day+1 <31){
+        }else if($day+1 <31){
             array_push($days,[$year."-".$month."-".($day-1)]);
             array_push($days,[$year."-".$month."-".$day]);
             array_push($days,[$year."-".$month."-".($day+1)]);
