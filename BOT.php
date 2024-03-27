@@ -13,8 +13,8 @@ $updates = json_decode($json_updates, true);
     $m_k2 = "فاکتور ماهانه";
     $m_k3 = "ثبت تعمیر";
     $m_k4 = "افزودن به انبار";
-    $m_k5 = "حذف از انبار";
-
+    $m_k5 = "حذف";
+    
     
     //! BACK KEYBOARD
     $back = "بازگشت";
@@ -24,8 +24,12 @@ $updates = json_decode($json_updates, true);
     $sd_k1 = "مدل";
     $sd_k2 = "مدل زیرمجموعه";
     $sd_k3 = "نوع";
-
-
+    
+    
+    //! DELETE KEYS
+    
+    $d_k1 = "حذف از انبار";
+    $d_k2 = "حذف تعمیری";
 
 
 
@@ -165,6 +169,28 @@ $updates = json_decode($json_updates, true);
         return $kb;
     }
 
+    //!==== DELETE KEYBOARD
+    $del_Set = [
+        [$d_k1],
+        [$d_k2],
+    ];
+
+    $delete_kb = [
+        'one_time_keyboard' => false,
+        'resize_keyboard' => true,
+        'keyboard' => $del_Set
+    ];
+
+    //!=== REPAIRES IN MONTH KEYBOARD
+    function rep_users_kb($month){
+        $users = users_in_month($month);
+        $kb = [
+            'resize_keyboard' => true,
+            'one_time_keyboard' => false,
+            'keyboard' => $users
+        ];
+        return $kb;
+    }
 
 
 
@@ -198,14 +224,16 @@ if($r_db){
         // send_to_admin(json_encode($updates));
         if(($text=='/start') || ($admin_status == '0')|| ($text == $back)){
             switch($text){
-                case $m_k1:store_data_by_model_p_type();break;
-                case $m_k2:ask_date_factor();break;
-                case $m_k3:start_add_repaire();break;
-                case $m_k4:add_item_to_store();break;
-                case $m_k5: delete_item_from_store();break;
-                case $sd_k1:store_data();break;
-                case $sd_k2:get_store_data_by_sub_type();break;
-                case $sd_k3:get_store_data_by_p_type();break;
+                case $m_k1  :  store_data_by_model_p_type();break;
+                case $m_k2  :  ask_date_factor();break;
+                case $m_k3  :  start_add_repaire();break;
+                case $m_k4  :  add_item_to_store();break;
+                case $m_k5  :  del_keys();break;
+                case $sd_k1 :  store_data();break;
+                case $sd_k2 :  get_store_data_by_sub_type();break;
+                case $sd_k3 :  get_store_data_by_p_type();break;
+                case $d_k1  :  delete_item_from_store();break;
+                case $d_k2  :  del_rep_send_month();break;
                 default:admin_panel("خانه");break;
             }
         }else if(strrpos($admin_status,'add_item') !== false){
@@ -263,6 +291,15 @@ if($r_db){
                 case '3':get_del_item_modle($text);break;
                 case '4':get_del_item_count($text);break;
                 case '5':del_item_by_count($text);break;
+                default:admin_panel("مشکلی در پردازش بوجود امده است");
+            }
+        }else if(strrpos($admin_status,"del_rep") !== false){
+            $part = explode("-",$admin_status)[1];
+            switch($part){
+                case '1':  del_rep_send_names($text);break;
+                case '2':  del_rep_send_ids($text);break;
+                case '3':  del_rep_send_to_verify($text);break;
+                case '4':  del_rep_del($text);break;
                 default:admin_panel("مشکلی در پردازش بوجود امده است");
             }
         }
@@ -925,10 +962,42 @@ if($r_db){
 
     }
 
+    //!=========== DELETE KEYBOARD
+    function del_keys(){
+        send_message_wk("لطفا گزینه را برای حذف انتخاب کنید",$GLOBALS['delete_kb']);
+    }
 
 
+    //!============ DELETE REPAIRE FROM DB
+    function del_rep_send_month(){
+        set_admin_status("del_rep 1");
+        send_message_wk('لطفا ماه تعمیر را انتخاب یا وارد کنید',months_kb());
+    }
+    //!========= GET MONTH AND SEND NAMES WITHIN THAT MONTH
+    function del_rep_send_names($month){
+        set_admin_status('del_rep 2');
+        set_admin_text($month);
+        send_message_wk("نراکنش کدامین کاربر را میخواهید حذف کنید ؟",rep_users_kb($month));
+    }
 
+    //!========= GET NAME AND SEND REPAIRE ID OF THAT PERSON
+    function del_rep_send_ids($name){
+        set_admin_status('del_rep 3');
+        $t = admin_text();
+        $t .= "/".$name;
+        set_admin_text($t);
+    }
 
+    //!========== GET PRICES AND SEND CONFIRM KB
+    function del_rep_send_to_verify($id){
+        set_admin_status('del_rep 4');
+
+    }
+
+    //!========== GET VERIFICATION AND DELETE REPAIRE FORM DATABASE
+    function del_rep_del($id){
+
+    }
 
 
 
@@ -971,6 +1040,27 @@ if($r_db){
         mysqli_close($con);
         
         return $check;
+    }
+
+    //!========== GET USERS IN ONE MONTH
+    function users_in_month($date){
+        $date = explode("-",$date);
+        $date = $date[0]."-".$date[1];
+        $con = mysqli_connect($GLOBALS['servername'],$GLOBALS['user'],$GLOBALS['pass'],$GLOBALS['dbname']);
+        $sql = "SELECT DISTINCT usernames FROM s_repaires WHERE serv_date LIKE '$date'";
+        $res = mysqli_query($con,$sql);
+        $keys = [];
+        if(mysqli_num_rows($res) > 0){
+            while($row = mysqli_fetch_assoc($res)){
+                array_push($keys,[$row["username"]]);
+            }
+            array_push($keys,[$GLOBALS['back']]);
+
+        }else{
+            
+            array_push($keys,[$GLOBALS['back']]);
+        }
+        return $keys;
     }
     //!=========== GET ITEM COUNT
     function item_count($p_type,$sub_type,$model){
