@@ -307,7 +307,7 @@ if($r_db){
                 default:admin_panel("مشکلی در پردازش بوجود امده است");
             }
         }else if(strrpos($admin_status,"del_rep") !== false){
-            $part = explode("-",$admin_status)[1];
+            $part = explode(" ",$admin_status)[1];
             switch($part){
                 case '1':  del_rep_send_names($text);break;
                 case '2':  del_rep_send_ids($text);break;
@@ -1060,7 +1060,7 @@ if($r_db){
         $date = explode("-",$date);
         $date = $date[0]."-".$date[1];
         $con = mysqli_connect($GLOBALS['servername'],$GLOBALS['user'],$GLOBALS['pass'],$GLOBALS['dbname']);
-        $sql = "SELECT DISTINCT usernames FROM s_repaires WHERE serv_date LIKE '$date'";
+        $sql = "SELECT DISTINCT username FROM s_repairs WHERE serv_date LIKE '$date'";
         $res = mysqli_query($con,$sql);
         $keys = [];
         if(mysqli_num_rows($res) > 0){
