@@ -1036,8 +1036,8 @@ if($r_db){
         set_admin_status('del_rep 4');
         $t = admin_text();
         $t .= "$".$id;
-        set_admin_status($t);
-        send_message_v("ایا مطمن هستید کهمیخواهید این تراکنش را حذف کنید؟");
+        set_admin_text($t);
+        send_message_v("ایا مطمن هستید که میخواهید این تراکنش را حذف کنید؟");
     }
 
     //!========== GET VERIFICATION AND DELETE REPAIRE FORM DATABASE
