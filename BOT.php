@@ -1027,18 +1027,39 @@ if($r_db){
             'keyboard' =>$keys
         ];
         send_message_wk($text,$kb);
-        $date .= "/".$name;
+        $date .= "$".$name;
         set_admin_text($date);
     }
 
     //!========== GET PRICES AND SEND CONFIRM KB
     function del_rep_send_to_verify($id){
         set_admin_status('del_rep 4');
-
+        $t = admin_text();
+        $t .= "$".$id;
+        set_admin_status($t);
+        send_message_v("ایا مطمن هستید کهمیخواهید این تراکنش را حذف کنید؟");
     }
 
     //!========== GET VERIFICATION AND DELETE REPAIRE FORM DATABASE
-    function del_rep_del($id){
+    function del_rep_del($resp){
+        $text = "";
+        $t = admin_text();
+        $id = explode('$',$t)[2];
+
+        if($resp == $GLOBALS['verify']){
+            $res = del_repair_by_id($id);
+            if($res){
+                $text = "حذف تعمیری با موفقیت انجام شد !";
+
+            }else{
+
+                $text = "در هنگام حذف مشکلی بوجود امده است";
+            }
+        }else{
+            $text = "عملیات با موفقیت لغو شد";
+        }
+
+        admin_panel($text);
 
     }
 
@@ -1127,6 +1148,18 @@ if($r_db){
         }
         mysqli_close($con);
         return $data;
+    }
+    //!========== DELETE REPAIRS WITH ID
+    function del_repair_by_id($id){
+        $con = mysqli_connect($GLOBALS['servername'],$GLOBALS['user'],$GLOBALS['pass'],$GLOBALS['dbname']);
+        $sql = "DELETE FROM s_repairs WHERE id='$id'";
+        $res = mysqli_query($con,$sql);
+        if($res != false){
+            return true;
+        }else{
+            return false;
+
+        }
     }
     //!========== GET USERS IN ONE MONTH
     function users_in_month($date){
