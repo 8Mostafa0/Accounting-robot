@@ -186,6 +186,7 @@ $updates = json_decode($json_updates, true);
     $del_Set = [
         [$d_k1],
         [$d_k2],
+        [$back]
     ];
 
     $delete_kb = [
@@ -984,13 +985,13 @@ if($r_db){
     //!============ DELETE REPAIRE FROM DB
     function del_rep_send_month(){
         set_admin_status("del_rep 1");
-        send_message_wk('لطفا ماه تعمیر را انتخاب یا وارد کنید',months_kb());
+        send_message_wk('لطفا ماه را انتخاب یا وارد کنید',months_kb());
     }
     //!========= GET MONTH AND SEND NAMES WITHIN THAT MONTH
     function del_rep_send_names($month){
         set_admin_status('del_rep 2');
         set_admin_text($month);
-        send_message_wk("نراکنش کدامین کاربر را میخواهید حذف کنید ؟",rep_users_kb($month));
+        send_message_wk("تراکنش کدامین کاربر را میخواهید حذف کنید ؟",rep_users_kb($month));
     }
 
     //!========= GET NAME AND SEND REPAIRE ID OF THAT PERSON
