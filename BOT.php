@@ -997,7 +997,8 @@ if($r_db){
     function del_rep_send_ids($name){
         set_admin_status('del_rep 3');
         $date = admin_text();
-        $data = repaires_of_user($name,$date);
+        $d = explode('-',$date);
+        $data = repaires_of_user($name,$d[0],$d[1]);
         $num = count($data); 
         $text = "تعمیرات کاربر : ".$name."\n";
         $keys = [];
@@ -1065,16 +1066,48 @@ if($r_db){
     function check(){
         $con =  mysqli_connect($GLOBALS['servername'], $GLOBALS['user'], $GLOBALS['pass'],$GLOBALS['dbname']);
         $check = true;
-        $sql_admin = "CREATE TABLE IF NOT EXISTS s_admin(id INT PRIMARY KEY  AUTO_INCREMENT,chat_id TEXT COLLATE utf32_unicode_ci,username TEXT COLLATE utf32_unicode_ci,status TEXT COLLATE utf32_unicode_ci,item_id TEXT COLLATE utf32_unicode_ci,text TEXT COLLATE utf32_unicode_ci,data TEXT COLLATE utf32_unicode_ci)";
+        $sql_admin = "CREATE TABLE IF NOT EXISTS s_admin(
+            id INT PRIMARY KEY  AUTO_INCREMENT,
+            chat_id TEXT COLLATE utf32_unicode_ci,
+            username TEXT COLLATE utf32_unicode_ci,
+            status TEXT COLLATE utf32_unicode_ci,
+            item_id TEXT COLLATE utf32_unicode_ci,
+            text TEXT COLLATE utf32_unicode_ci,
+            data TEXT COLLATE utf32_unicode_ci
+            )";
         $res_admin = mysqli_query($con,$sql_admin);
         $check = $res_admin != false?true:false;
 
-        $sql_anbar = "CREATE TABLE IF NOT EXISTS s_store(id INT PRIMARY KEY  AUTO_INCREMENT,p_type TEXT COLLATE utf32_unicode_ci,sub_type TEXT COLLATE utf32_unicode_ci,model TEXT COLLATE utf32_unicode_ci,count TEXT COLLATE utf32_unicode_ci,date_in TEXT COLLATE utf32_unicode_ci,price TEXT COLLATE utf32_unicode_ci)";
+        $sql_anbar = "CREATE TABLE IF NOT EXISTS s_store(
+            id INT PRIMARY KEY  AUTO_INCREMENT,
+            p_type TEXT COLLATE utf32_unicode_ci,
+            sub_type TEXT COLLATE utf32_unicode_ci,
+            model TEXT COLLATE utf32_unicode_ci,
+            count TEXT COLLATE utf32_unicode_ci,
+            date_in TEXT COLLATE utf32_unicode_ci,
+            price TEXT COLLATE utf32_unicode_ci
+            )";
         $res_anbar = mysqli_query($con,$sql_anbar);
 
         $check = $check != false?false:($res_anbar != false?true:false);
 
-        $sql_repaires = "CREATE TABLE IF NOT EXISTS s_repairs(id INT PRIMARY KEY  AUTO_INCREMENT,username TEXT COLLATE utf32_unicode_ci,phone TEXT COLLATE utf32_unicode_ci,p_type TEXT COLLATE utf32_unicode_ci,sub_type TEXT COLLATE utf32_unicode_ci,model TEXT COLLATE utf32_unicode_ci,price TEXT COLLATE utf32_unicode_ci,take_date TEXT COLLATE utf32_unicode_ci,serv_date TEXT COLLATE utf32_unicode_ci,profit TEXT COLLATE utf32_unicode_ci,end TEXT COLLATE utf32_unicode_ci)";
+        $sql_repaires = "CREATE TABLE IF NOT EXISTS s_repairs(
+            id INT PRIMARY KEY  AUTO_INCREMENT,
+            username TEXT COLLATE utf32_unicode_ci,
+            phone TEXT COLLATE utf32_unicode_ci,
+            p_type TEXT COLLATE utf32_unicode_ci,
+            sub_type TEXT COLLATE utf32_unicode_ci,
+            model TEXT COLLATE utf32_unicode_ci,
+            price TEXT COLLATE utf32_unicode_ci,
+            take_y TEXT COLLATE utf32_unicode_ci,
+            take_m TEXT COLLATE utf32_unicode_ci,
+            take_d TEXT COLLATE utf32_unicode_ci,
+            serv_y TEXT COLLATE utf32_unicode_ci,
+            serv_m TEXT COLLATE utf32_unicode_ci,
+            serv_d TEXT COLLATE utf32_unicode_ci,
+            profit TEXT COLLATE utf32_unicode_ci,
+            end TEXT COLLATE utf32_unicode_ci
+            )";
         $res_repaires = mysqli_query($con,$sql_repaires);
 
         $check = $check != false?false:($res_repaires != false?true:false);
@@ -1084,9 +1117,9 @@ if($r_db){
         return $check;
     }
     //!========== GET ALL REPAIRES OF A PERSON IN AMONTH
-    function repaires_of_user($name,$month){
+    function repaires_of_user($name,$date_y,$date_m){
         $con = mysqli_connect($GLOBALS['servername'],$GLOBALS['user'],$GLOBALS['pass'],$GLOBALS['dbname']);
-        $sql = "SELECT * FROM s_repairs WHERE username='$name' AND serv_date HAVING '$month'";
+        $sql = "SELECT * FROM s_repairs WHERE username='$name' AND serv_y='$date_y' AND serv_m='$date_m'";
         $res = mysqli_query($con,$sql);
         $data = [];
         if(mysqli_num_rows($res) > 0 ){
@@ -1098,9 +1131,8 @@ if($r_db){
     //!========== GET USERS IN ONE MONTH
     function users_in_month($date){
         $date = explode("-",$date);
-        $date = $date[0]."-".$date[1]."-";
         $con = mysqli_connect($GLOBALS['servername'],$GLOBALS['user'],$GLOBALS['pass'],$GLOBALS['dbname']);
-        $sql = "SELECT DISTINCT username FROM s_repairs WHERE serv_date HAVING '$date'";
+        $sql = "SELECT DISTINCT username FROM s_repairs WHERE serv_y ='$date[0]' AND serv_m ='$date[1]'";
         $res = mysqli_query($con,$sql);
         $keys = [];
         if(mysqli_num_rows($res) > 0){
@@ -1180,9 +1212,17 @@ if($r_db){
         }
     }
     //!=========== ADD REPAIRE TP REPARE TABLE
-    function add_repaire($user,$phone,$p_type,$sub_type,$model,$price,$tacke_date,$serv_date,$profit,$end){
+    function add_repaire($user,$phone,$p_type,$sub_type,$model,$price,$take_date,$serv_date,$profit,$end){
         $con = mysqli_connect($GLOBALS['servername'],$GLOBALS['user'],$GLOBALS['pass'],$GLOBALS['dbname']);
-        $sql = "INSERT INTO s_repairs(username,phone,p_type,sub_type,model,price,take_date,serv_date,profit,end) VALUES ('$user','$phone','$p_type','$sub_type','$model','$price','$tacke_date','$serv_date','$profit','$end')";
+        $t_date = explode('-',$take_date);
+        $s_date = explode('-',$serv_date);
+        $take_y = $t_date[0];
+        $take_m = $t_date[1];
+        $take_d = $t_date[2];
+        $serv_y = $s_date[0];
+        $serv_m = $s_date[1];
+        $serv_d = $s_date[2];
+        $sql = "INSERT INTO s_repairs(username,phone,p_type,sub_type,model,price,take_y,take_m,take_d,serv_y,serv_m,serv_d,profit,end) VALUES ('$user','$phone','$p_type','$sub_type','$model','$price','$take_y','$take_m','$take_d','$serv_y','$serv_m','$serv_d','$profit','$end')";
         $res = mysqli_query($con,$sql);
         if($res !== false){
             return true;
