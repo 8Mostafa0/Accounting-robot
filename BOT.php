@@ -996,9 +996,38 @@ if($r_db){
     //!========= GET NAME AND SEND REPAIRE ID OF THAT PERSON
     function del_rep_send_ids($name){
         set_admin_status('del_rep 3');
-        $t = admin_text();
-        $t .= "/".$name;
-        set_admin_text($t);
+        $date = admin_text();
+        $data = repaires_of_user($name,$date);
+        $num = count($data); 
+        $text = "تعمیرات کاربر : ".$name."\n";
+        $keys = [];
+        if($num > 0){
+            foreach($data as $rp){
+                array_push($keys,[$rp[0]]);
+                $text .= "
+                گوشی :  ".$rp[2]."
+                قطعه : ".$rp[3]."
+                زیرمجموعه قطعه : ".$rp[4]." 
+                مدل قطعه : ".$rp[5]."
+                هزینه : ".$rp[6]."
+                تاریخ تحویل : ".$rp[8]."
+                سود : ".$rp[9]."
+                ";
+            }
+            array_push($keys,[$GLOBALS['back']]);
+            
+        }else{
+            array_push($keys,[$GLOBALS['back']]);
+            $text = "تعمیری با این نام ثبت نشده است !";
+        }
+        $kb = [
+            'one_time_keyboard' => false,
+            'resize_keyboard' => true,
+            'keyboard' =>$keys
+        ];
+        send_message_wk($text,$kb);
+        $date .= "/".$name;
+        set_admin_text($date);
     }
 
     //!========== GET PRICES AND SEND CONFIRM KB
@@ -1054,13 +1083,24 @@ if($r_db){
         
         return $check;
     }
-
+    //!========== GET ALL REPAIRES OF A PERSON IN AMONTH
+    function repaires_of_user($name,$month){
+        $con = mysqli_connect($GLOBALS['servername'],$GLOBALS['user'],$GLOBALS['pass'],$GLOBALS['dbname']);
+        $sql = "SELECT * FROM s_repairs WHERE username='$name' AND serv_date HAVING '$month'";
+        $res = mysqli_query($con,$sql);
+        $data = [];
+        if(mysqli_num_rows($res) > 0 ){
+            $data = mysqli_fetch_all($res);
+        }
+        mysqli_close($con);
+        return $data;
+    }
     //!========== GET USERS IN ONE MONTH
     function users_in_month($date){
         $date = explode("-",$date);
-        $date = $date[0]."-".$date[1];
+        $date = $date[0]."-".$date[1]."-";
         $con = mysqli_connect($GLOBALS['servername'],$GLOBALS['user'],$GLOBALS['pass'],$GLOBALS['dbname']);
-        $sql = "SELECT DISTINCT username FROM s_repairs WHERE serv_date LIKE '$date'";
+        $sql = "SELECT DISTINCT username FROM s_repairs WHERE serv_date HAVING '$date'";
         $res = mysqli_query($con,$sql);
         $keys = [];
         if(mysqli_num_rows($res) > 0){
